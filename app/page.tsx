@@ -53,7 +53,8 @@ export default function Home() {
               </ul>
             </div>
           </div>
-          <div className="w-1/2">
+          <div className="w-1/2 pt-4">
+            <h3 className="font-semibold text-2xl underline mb-2">กราฟจุด Centroids</h3>
             <UVChart centroids={centroids} />
             <h3 className="font-semibold text-2xl underline mb-2">นำค่ามาเทียบกับกราฟด้านล่าง</h3>
             <Image src={'/BE0Aj.png'} width={400} height={400} alt="เทียบ" />
