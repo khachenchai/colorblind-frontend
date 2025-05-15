@@ -26,13 +26,13 @@ export default function Home() {
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">โปรแกรม</h1>
+      <h1 className="text-2xl font-bold mb-4">โปรแกรมสร้างรูปภาพเพื่อคนตาบอดสี</h1>
       <div className="flex flex-col w-1/2 space-y-2">
         <div className="flex gap-4">
           <label htmlFor="file" className="">อัพรูปภาพ</label><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files?.[0] || null)} className="border border-neutral-300 px-4 py-1" />
         </div>
         <div className="flex gap-4">
-          <label htmlFor="file" className="">กำหนดค่า K</label><input type="text" className="border px-4 py-1 rounded" placeholder="ค่า K" value={kValue} onChange={(e) => setKValue(e.target.value)} />
+          <label htmlFor="file" className="">กำหนดค่า K</label><input type="number" className="border px-4 py-1 rounded" placeholder="ค่า K" value={kValue} onChange={(e) => setKValue(e.target.value)} />
         </div>
         <button onClick={handleUpload} className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded cursor-pointer">
           Analyze
