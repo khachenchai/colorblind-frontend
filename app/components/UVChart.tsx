@@ -29,6 +29,8 @@ export default function UVChart({ centroids }: Props) {
     };
 
     const options = {
+        maintainAspectRatio: true,
+        aspectRatio: 1, // ทำให้สูง=กว้าง
         scales: {
             x: {
                 min: 0,
