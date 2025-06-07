@@ -28,6 +28,35 @@ export default function Home() {
   const [sortBy, setSortBy] = useState<"prota" | "deutera" | "trita">('prota');
   const [confType, setConfType] = useState<"prota" | "deutera" | "trita">('prota');
   const [kValue, setKValue] = useState('');
+  const [mValue, setMValue] = useState('');
+  const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+
+  const handleAnalysis = async () => {
+    console.log('sortedType: ', sortBy);
+    console.log('sortedCentroids: ', sortedCentroids);
+
+    const payload = {
+      r_seta_type: sortBy,
+      centriods: sortedCentroids,
+      m_body_value: parseFloat(mValue)
+    };
+
+    const res = await fetch("http://localhost:8000/analysis", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    // Set the processed image URL
+    if (data.processedImage) {
+      setProcessedImageUrl(`data:image/png;base64,${data.processedImage}`);
+    }
+  };
 
   const handleUpload = async () => {
     if (!file || !kValue) return;
@@ -62,36 +91,72 @@ export default function Home() {
     });
   }, [centroids, sortBy]);
 
-  const handleAnalysis = async () => {
-    console.log('sortedType: ', sortBy);
-    console.log('sortedCentroids: ', sortedCentroids);
+  // const handleAnalysis = async () => {
+  //   console.log('sortedType: ', sortBy);
+  //   console.log('sortedCentroids: ', sortedCentroids);
 
-    const payload = {
-      r_seta_type: sortBy,
-      centriods: sortedCentroids
-    };
+  //   const payload = {
+  //     r_seta_type: sortBy,
+  //     centriods: sortedCentroids
+  //   };
 
-    const res = await fetch("http://localhost:8000/analysis", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(payload), // <= ต้องเป็น string!
-    });
+  //   const res = await fetch("http://localhost:8000/analysis", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json"
+  //     },
+  //     body: JSON.stringify(payload), // <= ต้องเป็น string!
+  //   });
 
-    const data = await res.json();
-    console.log(data);
+  //   const data = await res.json();
+  //   console.log(data);
+  // };
+
+  const handleDownload = async () => {
+    try {
+      const response = await fetch('http://localhost:8000/download-image', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          imageData: (processedImageUrl as string).split(',')[1] // Remove the data:image/jpeg;base64, prefix
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('Download failed');
+      }
+
+      // Create a blob from the response
+      const blob = await response.blob();
+
+      // Create a download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'processed_image.jpg';
+      document.body.appendChild(a);
+      a.click();
+
+      // Cleanup
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (error) {
+      console.error('Error downloading image:', error);
+      // You might want to show an error message to the user here
+    }
   };
 
 
   return (
     <div className="p-8">
-      <h1 className="text-2xl font-bold mb-4">โปรแกรมสร้างรูปภาพเพื่อคนตาบอดสี</h1>
-      <div className="flex w-full gap-2">
-        <div className="w-1/2 space-y-2">
-          <div className="flex gap-4">
+      <h1 className="text-2xl font-bold mb-4 text-center md:text-left">โปรแกรมสร้างรูปภาพเพื่อคนตาบอดสี</h1>
+      <div className="flex flex-col md:flex-row w-full gap-2">
+        <div className="md:w-1/2 space-y-2">
+          <div className="flex gap-4 ">
             <label htmlFor="file">อัพรูปภาพ</label>
-            <input type="file" accept="image/*" onChange={handleFileChange} className="border border-neutral-300 px-4 py-1" />
+            <input type="file" accept="image/*" onChange={handleFileChange} className="border border-neutral-300 px-4 py-1 w-full" />
           </div>
           <div className="flex gap-4">
             <label htmlFor="kValue">กำหนดค่า K</label>
@@ -122,8 +187,8 @@ export default function Home() {
 
       {centroids.length > 0 && (
         <>
-          <div className="flex">
-            <div className="w-1/2 mt-8">
+          <div className="flex flex-col md:flex-row">
+            <div className="md:w-1/2 mt-8">
               <h2 className="text-xl font-semibold">Centroids &rarr; r, seta</h2>
               <div>
                 <p className="mb-2">เรียงข้อมูลตาม</p>
@@ -132,6 +197,8 @@ export default function Home() {
                   <option value="deutera">Deutera</option>
                   <option value="trita">Trita</option>
                 </select>
+                <p className="mb-2">ค่า M</p>
+                <input type="text" className="border px-4 py-1 rounded" placeholder="ค่า M" value={mValue} onChange={(e) => setMValue(e.target.value)} />
                 <div className="flex gap-x-2 mb-4">
                   <button type="button" onClick={() => setRSetaDisplayType('graph')} className="cursor-pointer px-2 py-1 bg-blue-400 hover:bg-blue-600 transition rounded">กราฟ</button>
                   <button type="button" onClick={() => setRSetaDisplayType('number')} className="cursor-pointer px-2 py-1 bg-green-400 hover:bg-green-600 transition rounded">ค่าตัวเลข</button>
@@ -173,7 +240,7 @@ export default function Home() {
                 )}
               </div>
             </div>
-            <div className="w-1/2 pt-4 pl-8">
+            <div className="md:w-1/2 pt-4 md:pl-8">
               <h3 className="font-semibold text-2xl underline mb-2">กราฟจุด Centroids</h3>
               <UVChart centroids={centroids.map(c => c.centroids)} />
               <h3 className="font-semibold text-2xl underline mb-2">นำค่ามาเทียบกับกราฟด้านล่าง</h3>
@@ -182,9 +249,28 @@ export default function Home() {
 
           </div>
           <hr className="mb-4 mt-8" />
-          <div className="w-full mt-4 flex justify-center">
-            <button onClick={handleAnalysis} className="px-4 py-2 w-[100px] bg-red-500 rounded text-white">วินิจฉัย</button>
-          </div>
+          <div className="w-full mt-4 flex flex-col items-center text-center">
+            <button onClick={handleAnalysis} className="px-4 py-2 w-[100px] bg-red-500 hover:bg-red-600 cursor-pointer rounded text-white">วินิจฉัย</button>
+            {/* Display processed image */}
+            {processedImageUrl && (
+              <div className="container mx-auto p-4 flex flex-col items-center">
+                <div className="mt-4">
+                  <h3 className="font-semibold text-xl mb-2">รูปภาพที่ประมวลผลแล้ว</h3>
+                  <img
+                    src={processedImageUrl}
+                    alt="Processed Image"
+                    className="max-w-full h-auto border rounded shadow-lg"
+                  />
+                  <button
+                    onClick={handleDownload}
+                    className="bg-emerald-400 hover:bg-emerald-500 text-white px-4 py-2 rounded mt-4 transition-colors duration-200"
+                  >
+                    ดาวน์โหลดรูปภาพ
+                  </button>
+                </div>
+              </div>
+            )}
+            </div>
         </>
       )}
     </div>
