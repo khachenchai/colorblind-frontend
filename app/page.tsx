@@ -4,6 +4,7 @@ import UVChart from "@/app/components/UVChart";
 import Image from "next/image";
 import RSetaChart from "./components/RSetaChart";
 import RSetaScatterChart from "./components/RSetaChart";
+import Link from "next/link";
 
 type DataResponseType = {
   centroids: number[];
@@ -22,6 +23,8 @@ type RSeta = {
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
+  const [filterdOriginalImgFile, setFilterdOriginalImgFile] = useState<File | null>(null);
+  const [filterdRemappedImgFile, setFilterdRemappedImgFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [centroids, setCentroids] = useState<DataResponseType[]>([]);
   const [rSetaDisplayType, setRSetaDisplayType] = useState<'graph' | 'number'>('graph');
@@ -30,6 +33,7 @@ export default function Home() {
   const [kValue, setKValue] = useState('');
   const [mValue, setMValue] = useState('');
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
+  const [originalPixels, setOriginalPixels] = useState<any[]>([]);
 
   const handleAnalysis = async () => {
     console.log('sortedType: ', sortBy);
@@ -38,7 +42,8 @@ export default function Home() {
     const payload = {
       r_seta_type: sortBy,
       centriods: sortedCentroids,
-      m_body_value: parseFloat(mValue)
+      m_body_value: parseFloat(mValue),
+      original_pixels: originalPixels
     };
 
     const res = await fetch("http://localhost:8000/analysis", {
@@ -75,6 +80,23 @@ export default function Home() {
     console.log(data);
 
     setCentroids(data.centroids);
+    setOriginalPixels(data.array_of_pixels);
+  };
+
+  const handleDeltaEUpload = async () => {
+    if (!filterdOriginalImgFile || !filterdRemappedImgFile) return;
+
+    const formData = new FormData();
+    formData.append("img1", filterdOriginalImgFile);
+    formData.append("img2", filterdRemappedImgFile);
+
+    const res = await fetch("http://localhost:8000/findDeltaE", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    console.log(data);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -85,32 +107,27 @@ export default function Home() {
     }
   };
 
+  const handleFilteredOriginalImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFilterdOriginalImgFile(selected);
+      setPreviewUrl(URL.createObjectURL(selected)); // ✅ preview
+    }
+  };
+
+  const handleFilteredRemappedImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0];
+    if (selected) {
+      setFilterdRemappedImgFile(selected);
+      setPreviewUrl(URL.createObjectURL(selected)); // ✅ preview
+    }
+  };
+
   const sortedCentroids = useMemo(() => {
     return [...centroids].sort((a, b) => {
       return a.r_setas[sortBy].seta - b.r_setas[sortBy].seta;
     });
   }, [centroids, sortBy]);
-
-  // const handleAnalysis = async () => {
-  //   console.log('sortedType: ', sortBy);
-  //   console.log('sortedCentroids: ', sortedCentroids);
-
-  //   const payload = {
-  //     r_seta_type: sortBy,
-  //     centriods: sortedCentroids
-  //   };
-
-  //   const res = await fetch("http://localhost:8000/analysis", {
-  //     method: "POST",
-  //     headers: {
-  //       "Content-Type": "application/json"
-  //     },
-  //     body: JSON.stringify(payload), // <= ต้องเป็น string!
-  //   });
-
-  //   const data = await res.json();
-  //   console.log(data);
-  // };
 
   const handleDownload = async () => {
     try {
@@ -135,7 +152,7 @@ export default function Home() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'processed_image.jpg';
+      a.download = sortBy + '_processed_image.jpg';
       document.body.appendChild(a);
       a.click();
 
@@ -270,7 +287,31 @@ export default function Home() {
                 </div>
               </div>
             )}
-            </div>
+          </div>
+          <hr className="my-2" />
+          <section className="px-0 md:px-8">
+            <h1 className="font-bold text-xl">ส่วนที่ 2</h1>
+            <p className="text-lg">ทดสอบค่า Delta e</p>
+            <p className="">
+              โปรดนำภาพของคุณทั้งสองภาพ (ภาพต้นฉบับ และ ภาพที่ได้จากการ Remap) ไปใส่ฟิลเตอร์ตาบอดสีที่นี่
+              <Link target="_blank" href={'https://daltonlens.org/colorblindness-simulator'} className="underline text-purple-800">https://daltonlens.org/colorblindness-simulator</Link>
+            </p>
+
+              <div className="flex flex-col md:flex-row items-center mt-4 gap-x-4">
+                <div className="w-1/2 md:w-full">
+                  <p className="text-lg font-medium">ภาพต้นฉบับที่ใส่ฟิลเตอร์แล้ว</p>
+                  <input type="file" accept="image/*" onChange={handleFilteredOriginalImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
+
+                </div>
+                <div className="w-1/2 md:w-full">
+                  <p className="text-lg font-medium">ภาพ remap ที่ใส่ฟิลเตอร์แล้ว</p>
+                  <input type="file" accept="image/*" onChange={handleFilteredRemappedImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
+                </div>
+              </div>
+              <div className="flex flex-col items-center">
+                <button onClick={handleDeltaEUpload} className="mt-4 px-4 py-2 bg-purple-300 hover:bg-purple-500 cursor-pointer transition rounded-lg">เทียบหาค่า delta e</button>
+              </div>
+          </section>
         </>
       )}
     </div>
