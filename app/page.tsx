@@ -20,12 +20,30 @@ type RSeta = {
   seta: number;
 };
 
+type EachImageData = {
+  delta_e_avg: number;
+  delta_e_max: number;
+  delta_e_min: number;
+  delta_e_std: number;
+  colorfulness: number;
+}
+
+type ImageFinalData = {
+  image1: EachImageData,
+  image2: EachImageData,
+  ssim: number,
+  tSNR: number;
+  msg: string
+}
+
 
 export default function Home() {
   const [file, setFile] = useState<File | null>(null);
   const [filterdOriginalImgFile, setFilterdOriginalImgFile] = useState<File | null>(null);
   const [filterdRemappedImgFile, setFilterdRemappedImgFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [img1Url, setImg1Url] = useState<string | null>(null);
+  const [img2Url, setImg2Url] = useState<string | null>(null);
   const [centroids, setCentroids] = useState<DataResponseType[]>([]);
   const [rSetaDisplayType, setRSetaDisplayType] = useState<'graph' | 'number'>('graph');
   const [sortBy, setSortBy] = useState<"prota" | "deutera" | "trita">('prota');
@@ -34,6 +52,7 @@ export default function Home() {
   const [mValue, setMValue] = useState('');
   const [processedImageUrl, setProcessedImageUrl] = useState<string | null>(null);
   const [originalPixels, setOriginalPixels] = useState<any[]>([]);
+  const [imageFinalData, setImageFinalData] = useState<ImageFinalData | null>(null);
 
   const handleAnalysis = async () => {
     console.log('sortedType: ', sortBy);
@@ -97,6 +116,8 @@ export default function Home() {
 
     const data = await res.json();
     console.log(data);
+
+    setImageFinalData(data);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -111,7 +132,7 @@ export default function Home() {
     const selected = e.target.files?.[0];
     if (selected) {
       setFilterdOriginalImgFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected)); // ✅ preview
+      setImg1Url(URL.createObjectURL(selected)); // ✅ preview
     }
   };
 
@@ -119,7 +140,7 @@ export default function Home() {
     const selected = e.target.files?.[0];
     if (selected) {
       setFilterdRemappedImgFile(selected);
-      setPreviewUrl(URL.createObjectURL(selected)); // ✅ preview
+      setImg2Url(URL.createObjectURL(selected)); // ✅ preview
     }
   };
 
@@ -293,24 +314,56 @@ export default function Home() {
             <h1 className="font-bold text-xl">ส่วนที่ 2</h1>
             <p className="text-lg">ทดสอบค่า Delta e</p>
             <p className="">
-              โปรดนำภาพของคุณทั้งสองภาพ (ภาพต้นฉบับ และ ภาพที่ได้จากการ Remap) ไปใส่ฟิลเตอร์ตาบอดสีที่นี่
+              โปรดนำภาพของคุณทั้งสองภาพ (ภาพต้นฉบับ และ ภาพที่ได้จากการ Remap) ไปใส่ฟิลเตอร์ตาบอดสีที่นี่&nbsp;
               <Link target="_blank" href={'https://daltonlens.org/colorblindness-simulator'} className="underline text-purple-800">https://daltonlens.org/colorblindness-simulator</Link>
             </p>
 
-              <div className="flex flex-col md:flex-row items-center mt-4 gap-x-4">
-                <div className="w-1/2 md:w-full">
-                  <p className="text-lg font-medium">ภาพต้นฉบับที่ใส่ฟิลเตอร์แล้ว</p>
-                  <input type="file" accept="image/*" onChange={handleFilteredOriginalImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
-
-                </div>
-                <div className="w-1/2 md:w-full">
-                  <p className="text-lg font-medium">ภาพ remap ที่ใส่ฟิลเตอร์แล้ว</p>
-                  <input type="file" accept="image/*" onChange={handleFilteredRemappedImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
-                </div>
+            <div className="flex flex-col md:flex-row md:items-center mt-4 gap-x-4 space-y-4">
+              <div className="md:w-1/2 w-full">
+                <p className="text-lg font-medium">ภาพต้นฉบับที่ใส่ฟิลเตอร์แล้ว</p>
+                <input type="file" accept="image/*" onChange={handleFilteredOriginalImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
+                {img1Url && (
+                  <img
+                    src={img1Url}
+                    alt="preview"
+                    className="border rounded max-w-xs shadow mt-4"
+                  />
+                )}
+                {imageFinalData && (
+                  <div className="mt-4">
+                    <p>ค่าเฉลี่ย ΔE: {imageFinalData.image1.delta_e_avg}</p>
+                    <p>ค่า ΔE ที่มากที่สุด: {imageFinalData.image1.delta_e_max}</p>
+                    <p>ค่า ΔE ที่น้อยที่สุด: {imageFinalData.image1.delta_e_min}</p>
+                    <p>ส่วนเบี่ยงเบนมาตรฐาน: {imageFinalData.image1.delta_e_std}</p>
+                    <p>ค่า Colorfulness Metric: {imageFinalData.image1.colorfulness}</p>
+                  </div>
+                )}
               </div>
-              <div className="flex flex-col items-center">
-                <button onClick={handleDeltaEUpload} className="mt-4 px-4 py-2 bg-purple-300 hover:bg-purple-500 cursor-pointer transition rounded-lg">เทียบหาค่า delta e</button>
+              <div className="md:w-1/2 w-full">
+                <p className="text-lg font-medium">ภาพ remap ที่ใส่ฟิลเตอร์แล้ว</p>
+                <input type="file" accept="image/*" onChange={handleFilteredRemappedImageChange} className="border border-neutral-300 px-4 py-1 w-full" />
+                {img2Url && (
+                  <img
+                    src={img2Url}
+                    alt="preview"
+                    className="border rounded max-w-xs shadow mt-4"
+                  />
+                )}
+                {imageFinalData && (
+                  <div className="mt-4">
+                    <p>ค่าเฉลี่ย ΔE: {imageFinalData.image2.delta_e_avg}</p>
+                    <p>ค่า ΔE ที่มากที่สุด: {imageFinalData.image2.delta_e_max}</p>
+                    <p>ค่า ΔE ที่น้อยที่สุด: {imageFinalData.image2.delta_e_min}</p>
+                    <p>ส่วนเบี่ยงเบนมาตรฐาน: {imageFinalData.image2.delta_e_std}</p>
+                    <p>ค่า Colorfulness Metric: {imageFinalData.image2.colorfulness}</p>
+                  </div>
+                )}
               </div>
+            </div>
+            {imageFinalData && <p className="text-center text-xl mt-8">ค่า SSIM: {imageFinalData.ssim}</p>}
+            <div className="flex flex-col items-center">
+              <button onClick={handleDeltaEUpload} className="mt-4 px-4 py-2 bg-purple-300 hover:bg-purple-500 cursor-pointer transition rounded-lg">เทียบหาค่า delta e</button>
+            </div>
           </section>
         </>
       )}
