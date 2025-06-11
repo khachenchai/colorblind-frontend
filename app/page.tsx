@@ -361,6 +361,7 @@ export default function Home() {
               </div>
             </div>
             {imageFinalData && <p className="text-center text-xl mt-8">ค่า SSIM: {imageFinalData.ssim}</p>}
+            {imageFinalData && <p className="text-center text-xl">ค่า tSNR: {imageFinalData.tSNR}</p>}
             <div className="flex flex-col items-center">
               <button onClick={handleDeltaEUpload} className="mt-4 px-4 py-2 bg-purple-300 hover:bg-purple-500 cursor-pointer transition rounded-lg">เทียบหาค่า delta e</button>
             </div>
